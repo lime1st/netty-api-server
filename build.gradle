@@ -22,8 +22,6 @@ configurations {
 dependencies {
     // 스프링 핵심 의존성
     implementation "org.springframework:spring-context:${springVersion}"
-//    implementation "org.springframework:spring-beans:${springVersion}"
-//    implementation "org.springframework:spring-core:${springVersion}"
 
     // 스프링 ORM: 스프링 프레임워크와 JPA 를 연동
     implementation "org.springframework:spring-orm:${springVersion}"
