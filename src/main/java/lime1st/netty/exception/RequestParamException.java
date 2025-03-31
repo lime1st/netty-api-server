@@ -1,4 +1,4 @@
-package lime1st.netty.server.service;
+package lime1st.netty.exception;
 
 /**
  * <p>
