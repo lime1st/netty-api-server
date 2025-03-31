@@ -1,6 +1,6 @@
 package lime1st.netty.service.user;
 
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lime1st.netty.api.model.ApiRequestTemplate;
 import lime1st.netty.domain.User;
 import lime1st.netty.domain.UserRepository;
@@ -25,16 +25,16 @@ public class UserInfo extends ApiRequestTemplate {
     }
 
     @Override
-    public void service(JsonObject apiResult) {
+    public void service(ObjectNode apiResult) {
         User user = userRepository.findByEmail(reqData.get("email"));
 
         if (user != null) {
-            apiResult.addProperty("resultCode", "200");
-            apiResult.addProperty("message", "Success");
-            apiResult.addProperty("userId", user.id());
+            apiResult.put("resultCode", "200");
+            apiResult.put("message", "Success");
+            apiResult.put("userId", user.id());
         } else {
-            apiResult.addProperty("resultCode", "404");
-            apiResult.addProperty("message", "User not found");
+            apiResult.put("resultCode", "404");
+            apiResult.put("message", "User not found");
         }
     }
 }

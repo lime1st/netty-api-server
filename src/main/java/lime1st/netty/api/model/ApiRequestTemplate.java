@@ -1,6 +1,7 @@
 package lime1st.netty.api.model;
 
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lime1st.netty.exception.RequestParamException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,8 +18,9 @@ import java.util.Map;
 public abstract class ApiRequestTemplate implements ApiRequest {
 
     private static final Logger log = LoggerFactory.getLogger(ApiRequestTemplate.class);
+    protected static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     protected Map<String, String> reqData;
-    private JsonObject apiResult;
+    private ObjectNode apiResult;
 
     // Http 요청에서 추출한 필드의 이름과 값을 API 서비스 클래스의 생성자로 전달한다.
     public ApiRequestTemplate(Map<String, String> reqData) {
@@ -28,7 +30,7 @@ public abstract class ApiRequestTemplate implements ApiRequest {
     }
 
     public void executeService() {
-        apiResult = new JsonObject();
+        apiResult = OBJECT_MAPPER.createObjectNode();
         try {
             // API 서비스 클래스의 인수로 입력된 Http 요청 맵의 정합성을 검증한다.
             // 이 메서드는 ApiRequestTemplate 추상 클래스를 상속받은 클래스에서 구현해야 한다.
@@ -38,18 +40,18 @@ public abstract class ApiRequestTemplate implements ApiRequest {
             service(apiResult);
         } catch (RequestParamException e) {
             log.error(e.getMessage(), e);
-            apiResult.addProperty("resultCode", "405");
+            apiResult.put("resultCode", "405");
         } catch (Exception e) {
             log.error(e.getMessage(), e) ;
-            apiResult.addProperty("resultCode", "501");
+            apiResult.put("resultCode", "501");
         }
     }
 
     @Override
-    public abstract void service(JsonObject apiResult);
+    public abstract void service(ObjectNode apiResult);
 
     @Override
-    public JsonObject getApiResult() {
+    public ObjectNode getApiResult() {
         return apiResult;
     }
 }

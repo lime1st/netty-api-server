@@ -1,6 +1,6 @@
 package lime1st.netty.api.model;
 
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lime1st.netty.exception.RequestParamException;
 
 public interface ApiRequest {
@@ -13,7 +13,7 @@ public interface ApiRequest {
     /**
      * 각 API 서비스에 따른 개별 구현 메서드
      */
-    void service(JsonObject apiResult);
+    void service(ObjectNode apiResult);
 
     /**
      * 서비스의 API 호출 시작 메서드
@@ -23,5 +23,5 @@ public interface ApiRequest {
     /**
      * API 서비스의 처리 결과를 조회하는 메서드
      */
-    JsonObject getApiResult();
+    ObjectNode getApiResult();
 }

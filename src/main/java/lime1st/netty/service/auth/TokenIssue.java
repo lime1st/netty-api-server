@@ -1,6 +1,6 @@
 package lime1st.netty.service.auth;
 
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lime1st.netty.api.model.ApiRequestTemplate;
 import lime1st.netty.domain.User;
 import lime1st.netty.domain.UserRepository;
@@ -25,42 +25,40 @@ public class TokenIssue extends ApiRequestTemplate {
 
     @Override
     public void requestParamValidation() throws RequestParamException {
-        log.info("data: {}", reqData);
         if (!reqData.containsKey("userId") || reqData.get("userId").isEmpty()) {
             throw new RequestParamException("userId is required");
         }
         if (!reqData.containsKey("password") || reqData.get("password").isEmpty()) {
             throw new RequestParamException("password is required");
         }
-        log.info("userId: {}, password: {}", reqData.get("userId"), reqData.get("password"));
     }
 
     @Override
-    public void service(JsonObject apiResult) {
+    public void service(ObjectNode apiResult) {
         User user = userRepository.findByPassword(reqData.get("password"));
-        log.info("user: {}", user);
+
         if (user != null) {
             final long threeHour = 60 * 60 * 3;
             long issueDate = System.currentTimeMillis() / 1000;
             String email = user.email();
 
-            JsonObject token = new JsonObject();
-            token.addProperty("issueDate", issueDate);
-            token.addProperty("expireDate", issueDate + threeHour);
-            token.addProperty("email", email);
-            token.addProperty("userId", user.id());
+            ObjectNode token = OBJECT_MAPPER.createObjectNode();
+            token.put("issueDate", issueDate);
+            token.put("expireDate", issueDate + threeHour);
+            token.put("email", email);
+            token.put("userId", user.id());
 
             // token 저장
             String tokenKey = "token:" + user.email();
             redisService.save(tokenKey, token.toString());
 
             // helper.
-            apiResult.addProperty("resultCode", "200");
-            apiResult.addProperty("message", "Success");
-            apiResult.addProperty("token", tokenKey);
+            apiResult.put("resultCode", "200");
+            apiResult.put("message", "Success");
+            apiResult.put("token", tokenKey);
         } else {
-            apiResult.addProperty("resultCode", "404");
-            apiResult.addProperty("message", "User not found");
+            apiResult.put("resultCode", "404");
+            apiResult.put("message", "User not found");
         }
     }
 }
