@@ -1,7 +1,7 @@
 package lime1st.netty.service.auth;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lime1st.netty.api.model.ApiRequestTemplate;
 import lime1st.netty.exception.RequestParamException;
 import lime1st.netty.infra.redis.RedisService;
@@ -28,22 +28,25 @@ public class TokenVerify extends ApiRequestTemplate {
     }
 
     @Override
-    public void service(JsonObject apiResult){
-        String tokenString = redisService.get(this.reqData.get("token"));
+    public void service(ObjectNode apiResult) {
+        String tokenString = redisService.get(reqData.get("token"));
 
         if (tokenString == null) {
-            apiResult.addProperty("resultCode", "404");
-            apiResult.addProperty("message", "Token not found");
+            apiResult.put("resultCode", "404");
+            apiResult.put("message", "Token not found");
         } else {
-            Gson gson = new Gson();
-            JsonObject token = gson.fromJson(tokenString, JsonObject.class);
+            try {
+                JsonNode token = OBJECT_MAPPER.readTree(tokenString);
 
-            // helper.
-            apiResult.addProperty("resultCode", "200");
-            apiResult.addProperty("message", "Success");
-            apiResult.addProperty("issueDate", token.get("issueDate").getAsString());
-            apiResult.addProperty("email", token.get("email").getAsString());
-            apiResult.addProperty("userId", token.get("userId").getAsString());
+                // helper.
+                apiResult.put("resultCode", "200");
+                apiResult.put("message", "Success");
+                apiResult.put("issueDate", token.get("issueDate").asText());
+                apiResult.put("email", token.get("email").asText());
+                apiResult.put("userId", token.get("userId").asText());
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 }

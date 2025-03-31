@@ -1,15 +1,16 @@
 package lime1st.netty.api.handler;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.*;
 import io.netty.util.CharsetUtil;
-import lime1st.netty.service.common.Router;
 import lime1st.netty.api.model.ApiRequest;
+import lime1st.netty.service.common.Router;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,7 +24,7 @@ public class ApiRequestParser extends SimpleChannelInboundHandler<FullHttpReques
 
     private static final Logger log = LoggerFactory.getLogger(ApiRequestParser.class);
     private static final Router ROUTER = new Router();
-    private static final Gson GSON = new Gson();
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest req) {
@@ -32,17 +33,23 @@ public class ApiRequestParser extends SimpleChannelInboundHandler<FullHttpReques
         ApiRequest service = ROUTER.route(reqData.get("uri"), reqData.get("method"), reqData);
 
         service.executeService();
-        JsonObject result = service.getApiResult();
+        ObjectNode result = service.getApiResult();
 
-        FullHttpResponse response = new DefaultFullHttpResponse(
-                HttpVersion.HTTP_1_1,
-                HttpResponseStatus.OK,
-                Unpooled.copiedBuffer(result.toString(), CharsetUtil.UTF_8)
-        );
-        response.headers().set(CONTENT_TYPE, "application/json");
-        response.headers().set(CONTENT_LENGTH, response.content().readableBytes());
+        FullHttpResponse response = null;
+        try {
+             response = new DefaultFullHttpResponse(
+                    HttpVersion.HTTP_1_1,
+                    HttpResponseStatus.OK,
+                    Unpooled.copiedBuffer(OBJECT_MAPPER.writeValueAsString(result), CharsetUtil.UTF_8)
+            );
+            response.headers().set(CONTENT_TYPE, "application/json");
+            response.headers().set(CONTENT_LENGTH, response.content().readableBytes());
+        } catch (JsonProcessingException e) {
+            e.printStackTrace(System.err);
+        }
 
         if (HttpUtil.isKeepAlive(req)) {
+            assert response != null;
             response.headers().set(CONNECTION, KEEP_ALIVE);
         }
 
@@ -74,14 +81,15 @@ public class ApiRequestParser extends SimpleChannelInboundHandler<FullHttpReques
         if (!body.isEmpty() && contentType != null) {
             if (contentType.contains("application/json")) {
                 try {
-                    JsonObject json = GSON.fromJson(body, JsonObject.class);
-                    json.entrySet().forEach(entry -> reqData.put(entry.getKey(), entry.getValue().getAsString()));
+                    Map<String, String> jsonData = OBJECT_MAPPER.readValue(body, Map.class);
+                    reqData.putAll(jsonData);
                 } catch (Exception e) {
                     log.error("Failed to parse JSON body: {}", body, e);
                 }
             } else if (contentType.contains("application/x-www-form-urlencoded")) {
                 QueryStringDecoder bodyDecoder = new QueryStringDecoder(body, false);
-                bodyDecoder.parameters().forEach((key, values) -> reqData.put(key, values.get(0)));
+                bodyDecoder.parameters().forEach((key, values) ->
+                        reqData.put(key, values.get(0)));
             } else {
                 reqData.put("body", body);  // 기타 형식은 그대로 저장
             }

@@ -1,6 +1,6 @@
 package lime1st.netty.service.auth;
 
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lime1st.netty.api.model.ApiRequestTemplate;
 import lime1st.netty.exception.RequestParamException;
 import lime1st.netty.infra.redis.RedisService;
@@ -24,15 +24,15 @@ public class TokenExpire extends ApiRequestTemplate {
     }
 
     @Override
-    public void service(JsonObject apiResult) {
+    public void service(ObjectNode apiResult) {
         if (redisService.del(reqData.get("token"))) {
             // helper.
-            apiResult.addProperty("resultCode", "200");
-            apiResult.addProperty("message", "Success");
-            apiResult.addProperty("token", reqData.get("token"));
+            apiResult.put("resultCode", "200");
+            apiResult.put("message", "Success");
+            apiResult.put("token", reqData.get("token"));
         } else {
-            apiResult.addProperty("resultCode", "404");
-            apiResult.addProperty("message", "token not exist or expired!");
+            apiResult.put("resultCode", "404");
+            apiResult.put("message", "token not exist or expired!");
         }
     }
 }
