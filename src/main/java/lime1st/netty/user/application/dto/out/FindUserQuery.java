@@ -1,4 +1,4 @@
-package lime1st.netty.user.application.dto.query;
+package lime1st.netty.user.application.dto.out;
 
 import java.time.LocalDateTime;
 

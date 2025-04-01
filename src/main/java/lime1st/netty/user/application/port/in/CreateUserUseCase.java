@@ -1,6 +1,6 @@
 package lime1st.netty.user.application.port.in;
 
-import lime1st.netty.user.application.dto.command.CreateUserCommand;
+import lime1st.netty.user.application.dto.in.CreateUserCommand;
 
 public interface CreateUserUseCase {
 

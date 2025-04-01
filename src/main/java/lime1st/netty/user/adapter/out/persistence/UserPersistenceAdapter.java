@@ -1,7 +1,7 @@
 package lime1st.netty.user.adapter.out.persistence;
 
-import lime1st.netty.user.application.dto.command.CreateUserCommand;
-import lime1st.netty.user.application.dto.query.FindUserQuery;
+import lime1st.netty.user.application.dto.in.CreateUserCommand;
+import lime1st.netty.user.application.dto.out.FindUserQuery;
 import lime1st.netty.user.application.port.out.LoadUserPort;
 import lime1st.netty.user.application.port.out.SaveUserPort;
 
@@ -18,7 +18,17 @@ public class UserPersistenceAdapter implements SaveUserPort, LoadUserPort {
 
     @Override
     public FindUserQuery loadUserByEmail(String email) {
-        UserJpaEntity findUser = userRepository.findByEmail(email);
-        return userMapper.mapToQueryFrom(findUser);
+        UserJpaEntity loadUser = userRepository.findByEmail(email);
+        return userMapper.mapToQueryFrom(loadUser);
+    }
+
+    @Override
+    public FindUserQuery loadUserByPassword(String password) {
+        UserJpaEntity loadUser = userRepository.findByPassword(password);
+        return userMapper.mapToQueryFrom(loadUser);
+    }
+
+    public void close() {
+        userRepository.close();
     }
 }

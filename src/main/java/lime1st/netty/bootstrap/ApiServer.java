@@ -12,6 +12,11 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
+import lime1st.netty.infra.redis.RedisService;
+import lime1st.netty.service.common.Router;
+import lime1st.netty.user.adapter.out.persistence.UserPersistenceAdapter;
+import lime1st.netty.user.application.dto.in.CreateUserCommand;
+import lime1st.netty.user.application.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,14 +26,22 @@ public final class ApiServer {
     private final int port;
     private final int boosThreadCount;
     private final int workerThreadCount;
+    private final Router router;
+    private final RedisService redisService;
+    private final UserPersistenceAdapter userPersistenceAdapter;
 
     public ApiServer(int port, int boosThreadCount, int workerThreadCount) {
         this.port = port;
         this.boosThreadCount = boosThreadCount;
         this.workerThreadCount = workerThreadCount;
+        this.redisService = new RedisService();
+        this.userPersistenceAdapter = new UserPersistenceAdapter();
+        UserService userService = new UserService(userPersistenceAdapter, userPersistenceAdapter);
+        this.router = new Router(redisService, userService);
     }
 
     public void start() throws Exception {
+         initializeData();
 
         final EventLoopGroup bossGroup;
         final EventLoopGroup workerGroup;
@@ -50,7 +63,7 @@ public final class ApiServer {
             b.group(bossGroup, workerGroup);
             b.channel(serverChannel.getClass());
             b.handler(new LoggingHandler(LogLevel.INFO));
-            b.childHandler(new ApiServerInitializer());
+            b.childHandler(new ApiServerInitializer(router));
             b.option(ChannelOption.SO_BACKLOG, 128);
             b.childOption(ChannelOption.SO_KEEPALIVE, true);
 
@@ -61,6 +74,18 @@ public final class ApiServer {
         } finally {
             bossGroup.shutdownGracefully();
             workerGroup.shutdownGracefully();
+            shutdown();
         }
+    }
+
+    private void shutdown() {
+        userPersistenceAdapter.close();
+        redisService.close();
+        log.info("Shutting down...");
+    }
+
+    private void initializeData() {
+        CreateUserCommand createUserCommand = new CreateUserCommand("alex", "alex@mail.com", "password");
+        userPersistenceAdapter.saveUser(createUserCommand);
     }
 }

@@ -1,7 +1,7 @@
 package lime1st.netty.user.adapter.out.persistence;
 
-import lime1st.netty.user.application.dto.command.CreateUserCommand;
-import lime1st.netty.user.application.dto.query.FindUserQuery;
+import lime1st.netty.user.application.dto.in.CreateUserCommand;
+import lime1st.netty.user.application.dto.out.FindUserQuery;
 
 public class UserMapper {
 

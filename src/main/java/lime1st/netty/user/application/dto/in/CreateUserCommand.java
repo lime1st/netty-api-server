@@ -1,4 +1,4 @@
-package lime1st.netty.user.application.dto.command;
+package lime1st.netty.user.application.dto.in;
 
 import lime1st.netty.user.domain.User;
 

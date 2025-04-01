@@ -1,7 +1,7 @@
 package lime1st.netty.user.application.service;
 
-import lime1st.netty.user.application.dto.command.CreateUserCommand;
-import lime1st.netty.user.application.dto.query.FindUserQuery;
+import lime1st.netty.user.application.dto.in.CreateUserCommand;
+import lime1st.netty.user.application.dto.out.FindUserQuery;
 import lime1st.netty.user.application.port.in.CreateUserUseCase;
 import lime1st.netty.user.application.port.in.ReadUserUseCase;
 import lime1st.netty.user.application.port.out.LoadUserPort;
@@ -31,5 +31,10 @@ public class UserService implements CreateUserUseCase, ReadUserUseCase {
     @Override
     public FindUserQuery readUserByEmail(String email) {
         return loadUserPort.loadUserByEmail(email);
+    }
+
+    @Override
+    public FindUserQuery readUserByPassword(String password) {
+        return loadUserPort.loadUserByPassword(password);
     }
 }

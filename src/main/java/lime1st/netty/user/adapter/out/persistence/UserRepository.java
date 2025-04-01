@@ -99,7 +99,6 @@ public class UserRepository {
         throw new RuntimeException(message, e);
     }
 
-    // TODO: close()를 호출해 줘야 한다.
     // 리소스 정리
     public void close() {
         if (emf != null && emf.isOpen()) {

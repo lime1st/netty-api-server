@@ -1,6 +1,7 @@
 package lime1st.netty.api.handler;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.netty.buffer.Unpooled;
@@ -23,14 +24,19 @@ import static io.netty.handler.codec.http.HttpHeaderValues.KEEP_ALIVE;
 public class ApiRequestParser extends SimpleChannelInboundHandler<FullHttpRequest> {
 
     private static final Logger log = LoggerFactory.getLogger(ApiRequestParser.class);
-    private static final Router ROUTER = new Router();
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private final Router router;
+
+    public ApiRequestParser(Router router) {
+        this.router = router;
+    }
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest req) {
         // FullHttpRequest 에서 uri, method(GET/POST...), body 분리
         Map<String, String> reqData = parseRequest(req);
-        ApiRequest service = ROUTER.route(reqData.get("uri"), reqData.get("method"), reqData);
+        log.info("Received request: {}", reqData);
+        ApiRequest service = router.route(reqData.get("uri"), reqData.get("method"), reqData);
 
         service.executeService();
         ObjectNode result = service.getApiResult();
@@ -81,7 +87,7 @@ public class ApiRequestParser extends SimpleChannelInboundHandler<FullHttpReques
         if (!body.isEmpty() && contentType != null) {
             if (contentType.contains("application/json")) {
                 try {
-                    Map<String, String> jsonData = OBJECT_MAPPER.readValue(body, Map.class);
+                    Map<String, String> jsonData = OBJECT_MAPPER.readValue(body, new TypeReference<Map<String, String>>() {});
                     reqData.putAll(jsonData);
                 } catch (Exception e) {
                     log.error("Failed to parse JSON body: {}", body, e);

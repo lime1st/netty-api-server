@@ -2,10 +2,10 @@ package lime1st.netty.service.auth;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lime1st.netty.api.model.ApiRequestTemplate;
-import lime1st.netty.user.adapter.out.persistence.UserJpaEntity;
-import lime1st.netty.user.adapter.out.persistence.UserRepository;
 import lime1st.netty.exception.RequestParamException;
 import lime1st.netty.infra.redis.RedisService;
+import lime1st.netty.user.application.dto.out.FindUserQuery;
+import lime1st.netty.user.application.port.in.ReadUserUseCase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,13 +14,13 @@ import java.util.Map;
 public class TokenIssue extends ApiRequestTemplate {
 
     private static final Logger log = LoggerFactory.getLogger(TokenIssue.class);
-    private final UserRepository userRepository;
     private final RedisService redisService;
+    private final ReadUserUseCase readUserUseCase;
 
-    public TokenIssue(Map<String, String> reqData, UserRepository userRepository, RedisService redisService) {
+    public TokenIssue(Map<String, String> reqData,RedisService redisService, ReadUserUseCase readUserUseCase) {
         super(reqData);
-        this.userRepository = userRepository;
         this.redisService = redisService;
+        this.readUserUseCase = readUserUseCase;
     }
 
     @Override
@@ -35,21 +35,21 @@ public class TokenIssue extends ApiRequestTemplate {
 
     @Override
     public void service(ObjectNode apiResult) {
-        UserJpaEntity userJpaEntity = userRepository.findByPassword(reqData.get("password"));
+        FindUserQuery findUser = readUserUseCase.readUserByPassword(reqData.get("password"));
 
-        if (userJpaEntity != null) {
+        if (findUser != null) {
             final long threeHour = 60 * 60 * 3;
             long issueDate = System.currentTimeMillis() / 1000;
-            String email = userJpaEntity.getEmail();
+            String email = findUser.email();
 
             ObjectNode token = OBJECT_MAPPER.createObjectNode();
             token.put("issueDate", issueDate);
             token.put("expireDate", issueDate + threeHour);
             token.put("email", email);
-            token.put("userId", userJpaEntity.getId());
+            token.put("userId", findUser.id());
 
             // token 저장
-            String tokenKey = "token:" + userJpaEntity.getEmail();
+            String tokenKey = "token:" + findUser.email();
             redisService.save(tokenKey, token.toString());
 
             // helper.

@@ -13,6 +13,7 @@ import java.util.Objects;
 })
 public class UserJpaEntity {
     @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
     private String email;
     private String name;
@@ -38,12 +39,17 @@ public class UserJpaEntity {
     @PrePersist
     public void prePersist() {
         this.createdAt = LocalDateTime.now();
+//        this.createdBy = getCurrentUser(); 필요 시 추가
     }
 
     @PreUpdate
     public void preUpdate() {
         this.updatedAt = LocalDateTime.now();
     }
+
+//    private String getCurrentUser() {
+//        return "system";
+//    }
 
     public Long getId() {
         return id;
