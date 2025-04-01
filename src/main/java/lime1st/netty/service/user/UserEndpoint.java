@@ -2,17 +2,17 @@ package lime1st.netty.service.user;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lime1st.netty.api.model.ApiRequestTemplate;
-import lime1st.netty.domain.User;
-import lime1st.netty.domain.UserRepository;
+import lime1st.netty.user.adapter.out.persistence.UserJpaEntity;
+import lime1st.netty.user.adapter.out.persistence.UserRepository;
 import lime1st.netty.exception.RequestParamException;
 
 import java.util.Map;
 
-public class UserInfo extends ApiRequestTemplate {
+public class UserEndpoint extends ApiRequestTemplate {
 
     private final UserRepository userRepository;
 
-    public UserInfo(Map<String, String> reqData, UserRepository userRepository) {
+    public UserEndpoint(Map<String, String> reqData, UserRepository userRepository) {
         super(reqData);
         this.userRepository = userRepository;
     }
@@ -26,12 +26,12 @@ public class UserInfo extends ApiRequestTemplate {
 
     @Override
     public void service(ObjectNode apiResult) {
-        User user = userRepository.findByEmail(reqData.get("email"));
+        UserJpaEntity userJpaEntity = userRepository.findByEmail(reqData.get("email"));
 
-        if (user != null) {
+        if (userJpaEntity != null) {
             apiResult.put("resultCode", "200");
             apiResult.put("message", "Success");
-            apiResult.put("userId", user.id());
+            apiResult.put("userId", userJpaEntity.getId());
         } else {
             apiResult.put("resultCode", "404");
             apiResult.put("message", "User not found");

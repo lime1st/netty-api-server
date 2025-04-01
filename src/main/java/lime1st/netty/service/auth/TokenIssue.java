@@ -2,8 +2,8 @@ package lime1st.netty.service.auth;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lime1st.netty.api.model.ApiRequestTemplate;
-import lime1st.netty.domain.User;
-import lime1st.netty.domain.UserRepository;
+import lime1st.netty.user.adapter.out.persistence.UserJpaEntity;
+import lime1st.netty.user.adapter.out.persistence.UserRepository;
 import lime1st.netty.exception.RequestParamException;
 import lime1st.netty.infra.redis.RedisService;
 import org.slf4j.Logger;
@@ -35,21 +35,21 @@ public class TokenIssue extends ApiRequestTemplate {
 
     @Override
     public void service(ObjectNode apiResult) {
-        User user = userRepository.findByPassword(reqData.get("password"));
+        UserJpaEntity userJpaEntity = userRepository.findByPassword(reqData.get("password"));
 
-        if (user != null) {
+        if (userJpaEntity != null) {
             final long threeHour = 60 * 60 * 3;
             long issueDate = System.currentTimeMillis() / 1000;
-            String email = user.email();
+            String email = userJpaEntity.getEmail();
 
             ObjectNode token = OBJECT_MAPPER.createObjectNode();
             token.put("issueDate", issueDate);
             token.put("expireDate", issueDate + threeHour);
             token.put("email", email);
-            token.put("userId", user.id());
+            token.put("userId", userJpaEntity.getId());
 
             // token 저장
-            String tokenKey = "token:" + user.email();
+            String tokenKey = "token:" + userJpaEntity.getEmail();
             redisService.save(tokenKey, token.toString());
 
             // helper.
