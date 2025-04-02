@@ -2,6 +2,7 @@ package lime1st.netty.api.model;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lime1st.netty.exception.RequestParamException;
+import reactor.core.publisher.Mono;
 
 public interface ApiRequest {
 
@@ -13,12 +14,12 @@ public interface ApiRequest {
     /**
      * 각 API 서비스에 따른 개별 구현 메서드
      */
-    void service(ObjectNode apiResult);
+    Mono<Void> service(ObjectNode apiResult);
 
     /**
      * 서비스의 API 호출 시작 메서드
      */
-    void executeService();
+    Mono<ObjectNode> executeService();
 
     /**
      * API 서비스의 처리 결과를 조회하는 메서드

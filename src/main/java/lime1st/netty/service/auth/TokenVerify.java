@@ -7,6 +7,7 @@ import lime1st.netty.exception.RequestParamException;
 import lime1st.netty.infra.redis.RedisService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Mono;
 
 import java.util.Map;
 
@@ -28,7 +29,7 @@ public class TokenVerify extends ApiRequestTemplate {
     }
 
     @Override
-    public void service(ObjectNode apiResult) {
+    public Mono<Void> service(ObjectNode apiResult) {
         String tokenString = redisService.get(reqData.get("token"));
 
         if (tokenString == null) {
@@ -48,5 +49,7 @@ public class TokenVerify extends ApiRequestTemplate {
                 throw new RuntimeException(e);
             }
         }
+
+        return Mono.empty();
     }
 }

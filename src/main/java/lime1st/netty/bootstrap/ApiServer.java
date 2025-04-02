@@ -12,9 +12,11 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
+import io.r2dbc.spi.ConnectionFactories;
+import io.r2dbc.spi.ConnectionFactory;
 import lime1st.netty.infra.redis.RedisService;
 import lime1st.netty.service.common.Router;
-import lime1st.netty.user.adapter.out.persistence.UserPersistenceAdapter;
+import lime1st.netty.user.adapter.out.persistence.UserR2dbcAdapter;
 import lime1st.netty.user.application.dto.in.CreateUserCommand;
 import lime1st.netty.user.application.service.UserService;
 import org.slf4j.Logger;
@@ -28,15 +30,16 @@ public final class ApiServer {
     private final int workerThreadCount;
     private final Router router;
     private final RedisService redisService;
-    private final UserPersistenceAdapter userPersistenceAdapter;
+    private final UserService userService;
 
     public ApiServer(int port, int boosThreadCount, int workerThreadCount) {
         this.port = port;
         this.boosThreadCount = boosThreadCount;
         this.workerThreadCount = workerThreadCount;
         this.redisService = new RedisService();
-        this.userPersistenceAdapter = new UserPersistenceAdapter();
-        UserService userService = new UserService(userPersistenceAdapter, userPersistenceAdapter);
+        ConnectionFactory connectionFactory = ConnectionFactories.get("r2dbc:h2:mem:///testdb");
+        UserR2dbcAdapter userR2dbcAdapter = new UserR2dbcAdapter(connectionFactory);
+        this.userService = new UserService(userR2dbcAdapter, userR2dbcAdapter);
         this.router = new Router(redisService, userService);
     }
 
@@ -79,13 +82,16 @@ public final class ApiServer {
     }
 
     private void shutdown() {
-        userPersistenceAdapter.close();
         redisService.close();
         log.info("Shutting down...");
     }
 
     private void initializeData() {
         CreateUserCommand createUserCommand = new CreateUserCommand("alex", "alex@mail.com", "password");
-        userPersistenceAdapter.saveUser(createUserCommand);
+        userService.createUser(createUserCommand)
+                .subscribe(
+                        id -> log.info("Initialized user with id: {}", id),
+                        err -> log.error("Failed to create user", err)
+                );
     }
 }

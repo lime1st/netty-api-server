@@ -6,8 +6,6 @@ public record FindUserQuery(
         Long id,
         String name,
         String email,
-        String password,
-        LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        String password
 ) {
 }

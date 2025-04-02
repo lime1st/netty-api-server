@@ -5,6 +5,7 @@ import lime1st.netty.api.model.ApiRequestTemplate;
 import lime1st.netty.exception.RequestParamException;
 import lime1st.netty.user.adapter.in.web.dto.response.FindUserResponse;
 import lime1st.netty.user.application.port.in.ReadUserUseCase;
+import reactor.core.publisher.Mono;
 
 import java.util.Map;
 
@@ -25,12 +26,20 @@ public class UserEndpoint extends ApiRequestTemplate {
     }
 
     @Override
-    public void service(ObjectNode apiResult) {
-        FindUserResponse findUser = FindUserResponse.fromQuery(readUserUseCase
-                .readUserByEmail(reqData.get("email")));
+    public Mono<Void> service(ObjectNode apiResult) {
+        return readUserUseCase.readUserByEmail(reqData.get("email"))
+                .map(FindUserResponse::fromQuery)
+                .doOnNext(findUser -> {
+                    apiResult.put("resultCode", "200");
+                    apiResult.put("message", "Success");
+                    apiResult.put("userId", findUser.id());
+                })
+                .switchIfEmpty(Mono.fromRunnable(() -> {
+                    apiResult.put("resultCode", "404");
+                    apiResult.put("message", "User Not Found");
+                }))
+                .then();
 
-        apiResult.put("resultCode", "200");
-        apiResult.put("message", "Success");
-        apiResult.put("userId", findUser.id());
+
     }
 }
