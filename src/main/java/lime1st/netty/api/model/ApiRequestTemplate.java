@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import lime1st.netty.exception.RequestParamException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Mono;
 
 import java.util.Map;
 
@@ -29,7 +30,7 @@ public abstract class ApiRequestTemplate implements ApiRequest {
         log.info("Request data: {}", reqData);
     }
 
-    public void executeService() {
+    public Mono<ObjectNode> executeService() {
         apiResult = OBJECT_MAPPER.createObjectNode();
         try {
             // API 서비스 클래스의 인수로 입력된 Http 요청 맵의 정합성을 검증한다.
@@ -37,7 +38,7 @@ public abstract class ApiRequestTemplate implements ApiRequest {
             requestParamValidation();
 
             // service 메서드는 각 API 서비스 클래스가 제공할 기능을 구현한다.
-            service(apiResult);
+            return service(apiResult).then(Mono.just(apiResult));
         } catch (RequestParamException e) {
             log.error(e.getMessage(), e);
             apiResult.put("resultCode", "405");
@@ -45,10 +46,11 @@ public abstract class ApiRequestTemplate implements ApiRequest {
             log.error(e.getMessage(), e) ;
             apiResult.put("resultCode", "501");
         }
+        return Mono.empty();
     }
 
     @Override
-    public abstract void service(ObjectNode apiResult);
+    public abstract Mono<Void> service(ObjectNode apiResult);
 
     @Override
     public ObjectNode getApiResult() {

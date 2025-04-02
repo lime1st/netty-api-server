@@ -1,10 +1,9 @@
 package lime1st.netty.api.handler;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -14,6 +13,7 @@ import lime1st.netty.api.model.ApiRequest;
 import lime1st.netty.service.common.Router;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Mono;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -38,34 +38,69 @@ public class ApiRequestParser extends SimpleChannelInboundHandler<FullHttpReques
         log.info("Received request: {}", reqData);
         ApiRequest service = router.route(reqData.get("uri"), reqData.get("method"), reqData);
 
-        service.executeService();
-        ObjectNode result = service.getApiResult();
-
-        FullHttpResponse response = null;
-        try {
-             response = new DefaultFullHttpResponse(
-                    HttpVersion.HTTP_1_1,
-                    HttpResponseStatus.OK,
-                    Unpooled.copiedBuffer(OBJECT_MAPPER.writeValueAsString(result), CharsetUtil.UTF_8)
-            );
-            response.headers().set(CONTENT_TYPE, "application/json");
-            response.headers().set(CONTENT_LENGTH, response.content().readableBytes());
-        } catch (JsonProcessingException e) {
-            e.printStackTrace(System.err);
+        if (service == null) {
+            sendErrorResponse(ctx, HttpResponseStatus.NOT_FOUND);
+            return;
         }
 
-        if (HttpUtil.isKeepAlive(req)) {
-            assert response != null;
-            response.headers().set(CONNECTION, KEEP_ALIVE);
-        }
-
-        ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
+        Mono.from(service.executeService())
+                .map(result -> {
+                    FullHttpResponse response = new DefaultFullHttpResponse(
+                            HttpVersion.HTTP_1_1,
+                            HttpResponseStatus.OK,
+                            Unpooled.copiedBuffer(result.toString(), CharsetUtil.UTF_8)
+                    );
+                    response.headers().set(CONTENT_TYPE, "application/json");
+                    response.headers().set(CONTENT_LENGTH, response.content().readableBytes());
+                    if (HttpUtil.isKeepAlive(req)) {
+                        response.headers().set(CONNECTION, KEEP_ALIVE);
+                    }
+                    return response;
+                })
+                .defaultIfEmpty(createEmptyResponse())
+                .subscribe(
+                        response -> {
+                            ChannelFuture future = ctx.writeAndFlush(response);
+                            future.addListener(ChannelFutureListener.CLOSE_ON_FAILURE)
+                                    .addListener(f -> {
+                                        if (f.isSuccess()) {
+                                            log.info("Response sent");
+                                        } else {
+                                            log.error("Failed to send response: ", f.cause());
+                                        }
+                                        if (!HttpUtil.isKeepAlive(req)) {
+                                            ctx.close();
+                                        }
+                                    });
+                        },
+                        error -> {
+                            log.error("Failed to process request", error);
+                            sendErrorResponse(ctx, HttpResponseStatus.INTERNAL_SERVER_ERROR);
+                        },
+                        () -> log.info("Request processing complete")
+                );
     }
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
         log.error("Error processing request", cause);
         ctx.close();
+    }
+
+    private FullHttpResponse createEmptyResponse() {
+        return new DefaultFullHttpResponse(
+                HttpVersion.HTTP_1_1, HttpResponseStatus.OK,
+                Unpooled.copiedBuffer("{}", CharsetUtil.UTF_8)
+        );
+    }
+
+    private void sendErrorResponse(ChannelHandlerContext ctx, HttpResponseStatus status) {
+        FullHttpResponse response = new DefaultFullHttpResponse(
+                HttpVersion.HTTP_1_1, status,
+                Unpooled.copiedBuffer("{\"error\": \"" + status.reasonPhrase() + "\"}", CharsetUtil.UTF_8)
+        );
+        response.headers().set(CONTENT_TYPE, "application/json");
+        ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
     }
 
     private Map<String, String> parseRequest(FullHttpRequest req) {

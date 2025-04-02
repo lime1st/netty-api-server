@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import lime1st.netty.api.model.ApiRequestTemplate;
 import lime1st.netty.exception.RequestParamException;
 import lime1st.netty.infra.redis.RedisService;
+import reactor.core.publisher.Mono;
 
 import java.util.Map;
 
@@ -24,7 +25,7 @@ public class TokenExpire extends ApiRequestTemplate {
     }
 
     @Override
-    public void service(ObjectNode apiResult) {
+    public Mono<Void> service(ObjectNode apiResult) {
         if (redisService.del(reqData.get("token"))) {
             // helper.
             apiResult.put("resultCode", "200");
@@ -34,5 +35,7 @@ public class TokenExpire extends ApiRequestTemplate {
             apiResult.put("resultCode", "404");
             apiResult.put("message", "token not exist or expired!");
         }
+
+        return Mono.empty();
     }
 }

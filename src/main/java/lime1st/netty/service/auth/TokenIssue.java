@@ -4,10 +4,11 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import lime1st.netty.api.model.ApiRequestTemplate;
 import lime1st.netty.exception.RequestParamException;
 import lime1st.netty.infra.redis.RedisService;
-import lime1st.netty.user.application.dto.out.FindUserQuery;
+import lime1st.netty.user.adapter.in.web.dto.response.FindUserResponse;
 import lime1st.netty.user.application.port.in.ReadUserUseCase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Mono;
 
 import java.util.Map;
 
@@ -34,9 +35,16 @@ public class TokenIssue extends ApiRequestTemplate {
     }
 
     @Override
-    public void service(ObjectNode apiResult) {
-        FindUserQuery findUser = readUserUseCase.readUserByPassword(reqData.get("password"));
+    public Mono<Void> service(ObjectNode apiResult) {
+        return readUserUseCase.readUserByPassword(reqData.get("password"))
+                .map(FindUserResponse::fromQuery)
+                .doOnNext(findUser -> {
+                    extracted(apiResult, findUser);
+                })
+                .then();
+    }
 
+    private void extracted(ObjectNode apiResult, FindUserResponse findUser) {
         if (findUser != null) {
             final long threeHour = 60 * 60 * 3;
             long issueDate = System.currentTimeMillis() / 1000;

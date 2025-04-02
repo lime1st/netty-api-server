@@ -8,9 +8,7 @@ public record FindUserResponse(
         Long id,
         String name,
         String email,
-        String password,
-        LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        String password
 ) {
 
     public static FindUserResponse fromQuery(FindUserQuery query) {
@@ -18,9 +16,7 @@ public record FindUserResponse(
                 query.id(),
                 query.name(),
                 query.email(),
-                query.password(),
-                query.createdAt(),
-                query.updatedAt()
+                query.password()
         );
     }
 }

@@ -7,6 +7,7 @@ import lime1st.netty.user.application.port.in.ReadUserUseCase;
 import lime1st.netty.user.application.port.out.LoadUserPort;
 import lime1st.netty.user.application.port.out.SaveUserPort;
 import lime1st.netty.user.domain.User;
+import reactor.core.publisher.Mono;
 
 public class UserService implements CreateUserUseCase, ReadUserUseCase {
 
@@ -19,7 +20,7 @@ public class UserService implements CreateUserUseCase, ReadUserUseCase {
     }
 
     @Override
-    public long createUser(CreateUserCommand command) {
+    public Mono<Long> createUser(CreateUserCommand command) {
         User user = User.create(
                 command.name(),
                 command.email(),
@@ -29,12 +30,12 @@ public class UserService implements CreateUserUseCase, ReadUserUseCase {
     }
 
     @Override
-    public FindUserQuery readUserByEmail(String email) {
+    public Mono<FindUserQuery> readUserByEmail(String email) {
         return loadUserPort.loadUserByEmail(email);
     }
 
     @Override
-    public FindUserQuery readUserByPassword(String password) {
+    public Mono<FindUserQuery> readUserByPassword(String password) {
         return loadUserPort.loadUserByPassword(password);
     }
 }

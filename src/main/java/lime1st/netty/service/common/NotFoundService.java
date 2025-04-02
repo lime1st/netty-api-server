@@ -2,6 +2,7 @@ package lime1st.netty.service.common;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lime1st.netty.api.model.ApiRequestTemplate;
+import reactor.core.publisher.Mono;
 
 import java.util.Map;
 
@@ -16,8 +17,9 @@ public class NotFoundService extends ApiRequestTemplate {
     }
 
     @Override
-    public void service(ObjectNode apiResult) {
+    public Mono<Void> service(ObjectNode apiResult) {
         apiResult.put("resultCode", "404");
         apiResult.put("message", "Service not found");
+        return Mono.empty();
     }
 }
