@@ -1,6 +1,6 @@
 package lime1st.netty;
 
-import lime1st.netty.bootstrap.ApiServer;
+import lime1st.netty.server.framework.ApiServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

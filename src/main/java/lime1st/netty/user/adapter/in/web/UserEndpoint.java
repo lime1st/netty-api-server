@@ -1,8 +1,7 @@
 package lime1st.netty.user.adapter.in.web;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import lime1st.netty.api.model.ApiRequestTemplate;
-import lime1st.netty.exception.RequestParamException;
+import lime1st.netty.server.domain.ApiRequestTemplate;
 import lime1st.netty.user.adapter.in.web.dto.response.FindUserResponse;
 import lime1st.netty.user.application.port.in.ReadUserUseCase;
 import reactor.core.publisher.Mono;
@@ -19,13 +18,6 @@ public class UserEndpoint extends ApiRequestTemplate {
     }
 
     @Override
-    public void requestParamValidation() throws RequestParamException {
-        if (!reqData.containsKey("email") || reqData.get("email").isEmpty()) {
-            throw new RequestParamException("email is required");
-        }
-    }
-
-    @Override
     public Mono<Void> service(ObjectNode apiResult) {
         return readUserUseCase.readUserByEmail(reqData.get("email"))
                 .map(FindUserResponse::fromQuery)
@@ -39,7 +31,16 @@ public class UserEndpoint extends ApiRequestTemplate {
                     apiResult.put("message", "User Not Found");
                 }))
                 .then();
+    }
 
-
+    @Override
+    protected Mono<Void> validateRequest() {
+        return super.validateRequest()
+                .then(Mono.defer(() -> {
+                    if (!reqData.containsKey("email") || reqData.get("email").isEmpty()) {
+                        return Mono.error(new IllegalArgumentException("email is required"));
+                    }
+                    return Mono.empty();
+                }));
     }
 }

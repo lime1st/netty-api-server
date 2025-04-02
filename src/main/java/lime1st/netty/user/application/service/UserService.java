@@ -4,19 +4,19 @@ import lime1st.netty.user.application.dto.in.CreateUserCommand;
 import lime1st.netty.user.application.dto.out.FindUserQuery;
 import lime1st.netty.user.application.port.in.CreateUserUseCase;
 import lime1st.netty.user.application.port.in.ReadUserUseCase;
-import lime1st.netty.user.application.port.out.LoadUserPort;
-import lime1st.netty.user.application.port.out.SaveUserPort;
+import lime1st.netty.user.application.port.out.CreateUserPort;
+import lime1st.netty.user.application.port.out.ReadUserPort;
 import lime1st.netty.user.domain.User;
 import reactor.core.publisher.Mono;
 
 public class UserService implements CreateUserUseCase, ReadUserUseCase {
 
-    private final SaveUserPort saveUserPort;
-    private final LoadUserPort loadUserPort;
+    private final CreateUserPort createUserPort;
+    private final ReadUserPort readUserPort;
 
-    public UserService(SaveUserPort saveUserPort, LoadUserPort loadUserPort) {
-        this.saveUserPort = saveUserPort;
-        this.loadUserPort = loadUserPort;
+    public UserService(CreateUserPort createUserPort, ReadUserPort readUserPort) {
+        this.createUserPort = createUserPort;
+        this.readUserPort = readUserPort;
     }
 
     @Override
@@ -26,16 +26,16 @@ public class UserService implements CreateUserUseCase, ReadUserUseCase {
                 command.email(),
                 command.password()
         );
-        return saveUserPort.saveUser(CreateUserCommand.from(user));
+        return createUserPort.createUser(CreateUserCommand.from(user));
+    }
+
+    @Override
+    public Mono<FindUserQuery> readUserById(String userId) {
+        return readUserPort.readUserById(userId);
     }
 
     @Override
     public Mono<FindUserQuery> readUserByEmail(String email) {
-        return loadUserPort.loadUserByEmail(email);
-    }
-
-    @Override
-    public Mono<FindUserQuery> readUserByPassword(String password) {
-        return loadUserPort.loadUserByPassword(password);
+        return readUserPort.readUserByEmail(email);
     }
 }

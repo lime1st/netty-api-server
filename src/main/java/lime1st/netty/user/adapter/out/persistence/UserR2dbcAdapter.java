@@ -5,15 +5,15 @@ import io.r2dbc.spi.Row;
 import io.r2dbc.spi.RowMetadata;
 import lime1st.netty.user.application.dto.in.CreateUserCommand;
 import lime1st.netty.user.application.dto.out.FindUserQuery;
-import lime1st.netty.user.application.port.out.LoadUserPort;
-import lime1st.netty.user.application.port.out.SaveUserPort;
+import lime1st.netty.user.application.port.out.ReadUserPort;
+import lime1st.netty.user.application.port.out.CreateUserPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 
 import java.util.function.BiFunction;
 
-public class UserR2dbcAdapter implements SaveUserPort, LoadUserPort {
+public class UserR2dbcAdapter implements CreateUserPort, ReadUserPort {
 
     private static final Logger log = LoggerFactory.getLogger(UserR2dbcAdapter.class);
     private final ConnectionFactory connectionFactory;
@@ -26,7 +26,7 @@ public class UserR2dbcAdapter implements SaveUserPort, LoadUserPort {
     }
 
     @Override
-    public Mono<Long> saveUser(CreateUserCommand command) {
+    public Mono<Long> createUser(CreateUserCommand command) {
         return Mono.from(connectionFactory.create())
                 .flatMap(connection ->
                         Mono.from(connection.createStatement("INSERT INTO users (email, name, password) VALUES ($1, $2, $3)")
@@ -42,7 +42,23 @@ public class UserR2dbcAdapter implements SaveUserPort, LoadUserPort {
     }
 
     @Override
-    public Mono<FindUserQuery> loadUserByEmail(String email) {
+    public Mono<FindUserQuery> readUserById(String d) {
+        long userId = Long.parseLong(d);
+        return Mono.from(connectionFactory.create())
+                .flatMap(connection ->
+                        Mono.from(connection.createStatement("SELECT * FROM users WHERE id = $1")
+                                        .bind("$1", userId)
+                                        .execute())
+                                .flatMap(result ->
+                                        Mono.from(result.map(getFindUserQueryBiFunction())))
+                                .doOnNext(query -> log.info("Found user by id '{}': {}", userId, query))
+                                .doOnError(e -> log.error("Error reading user by id '{}': {}", userId, e.getMessage()))
+                                .doFinally(signal -> connection.close())
+                                .switchIfEmpty(Mono.empty()));
+    }
+
+    @Override
+    public Mono<FindUserQuery> readUserByEmail(String email) {
         return Mono.from(connectionFactory.create())
                 .flatMap(connection ->
                         Mono.from(connection.createStatement("SELECT * FROM users WHERE email = $1")
@@ -50,19 +66,8 @@ public class UserR2dbcAdapter implements SaveUserPort, LoadUserPort {
                                         .execute())
                                 .flatMap(result ->
                                         Mono.from(result.map(getFindUserQueryBiFunction())))
-                                .doFinally(signal -> connection.close())
-                                .switchIfEmpty(Mono.empty()));
-    }
-
-    @Override
-    public Mono<FindUserQuery> loadUserByPassword(String password) {
-        return Mono.from(connectionFactory.create())
-                .flatMap(connection ->
-                        Mono.from(connection.createStatement("SELECT * FROM users WHERE password = $1")
-                                        .bind("$1", password)
-                                        .execute())
-                                .flatMap(result ->
-                                        Mono.from(result.map(getFindUserQueryBiFunction())))
+                                .doOnNext(query -> log.info("Found user by email '{}': {}", email, query))
+                                .doOnError(e -> log.error("Error reading user by email '{}': {}", email, e.getMessage()))
                                 .doFinally(signal -> connection.close())
                                 .switchIfEmpty(Mono.empty()));
     }

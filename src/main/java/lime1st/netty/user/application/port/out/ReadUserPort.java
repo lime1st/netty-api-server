@@ -1,9 +1,9 @@
-package lime1st.netty.user.application.port.in;
+package lime1st.netty.user.application.port.out;
 
 import lime1st.netty.user.application.dto.out.FindUserQuery;
 import reactor.core.publisher.Mono;
 
-public interface ReadUserUseCase {
+public interface ReadUserPort {
 
     Mono<FindUserQuery> readUserById(String userId);
 
